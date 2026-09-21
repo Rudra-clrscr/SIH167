@@ -1,0 +1,63 @@
+{
+  "tools": [
+    {
+      "id": "rs_vqa_tool",
+      "name": "Remote Sensing VQA Model",
+      "description": "Answers natural language questions about land cover, spectral characteristics, and features in satellite imagery.",
+      "accepted_inputs": ["SINGLE"],
+      "permitted_parameters": {
+        "confidence_threshold": 0.5,
+        "detail_level": "verbose",
+        "spatial_attention": true
+      },
+      "adapted_backbone": "BigEarthNet-adapted RS-VLM"
+    },
+    {
+      "id": "rs_captioning_tool",
+      "name": "Remote Sensing Scene Captioner",
+      "description": "Generates structured scene descriptions, land cover summaries, and object counts.",
+      "accepted_inputs": ["SINGLE"],
+      "permitted_parameters": {
+        "max_length": 150,
+        "include_landcover_distribution": true
+      },
+      "adapted_backbone": "BigEarthNet-adapted RS-Captioner"
+    },
+    {
+      "id": "text_grounding_tool",
+      "name": "Text-Guided Region Grounding Model",
+      "description": "Localizes target objects, water bodies, urban zones, or agricultural plots specified in text queries.",
+      "accepted_inputs": ["SINGLE", "CROSS_MODAL"],
+      "permitted_parameters": {
+        "iou_threshold": 0.4,
+        "max_boxes": 10,
+        "mask_generation": true
+      },
+      "adapted_backbone": "RS-Grounding CLIP/YOLO"
+    },
+    {
+      "id": "bitemporal_change_tool",
+      "name": "Bi-Temporal Change Understanding Engine",
+      "description": "Detects land cover transitions, infrastructure changes, and flood inundation between two dates, generating a spatial change map and textual change explanation.",
+      "accepted_inputs": ["BITEMPORAL"],
+      "permitted_parameters": {
+        "change_sensitivity": 0.65,
+        "filter_small_noise": true,
+        "generate_heatmap": true
+      },
+      "adapted_backbone": "BiTemporal RS-ChangeFormer"
+    },
+    {
+      "id": "optical_sar_fusion_tool",
+      "name": "Optical-SAR Cross-Modal Fusion Engine",
+      "description": "Fuses co-registered Optical spectral features with SAR structural/backscatter radar signals for day/night and cloud-resilient joint land-use classification.",
+      "accepted_inputs": ["CROSS_MODAL"],
+      "permitted_parameters": {
+        "sar_weight": 0.5,
+        "optical_weight": 0.5,
+        "polarization_focus": "VV_VH"
+      },
+      "adapted_backbone": "BigEarthNet S1/S2 Cross-Modal Fusion Transformer"
+    }
+  ]
+}
