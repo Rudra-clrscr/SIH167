@@ -23,16 +23,19 @@ export default function CanvasView({
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const imageObj = new Image();
-    imageObj.crossOrigin = "anonymous";
-    imageObj.src = img1.preview_base64;
+    
+    const renderBoxes = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    imageObj.onload = () => {
-      canvas.width = imageObj.naturalWidth || 600;
-      canvas.height = imageObj.naturalHeight || 600;
-
-      // Draw base satellite image
-      ctx.drawImage(imageObj, 0, 0, canvas.width, canvas.height);
+      if (selectedImages.length === 1 && imageObj.complete && imageObj.naturalWidth) {
+        canvas.width = imageObj.naturalWidth || 600;
+        canvas.height = imageObj.naturalHeight || 600;
+        ctx.drawImage(imageObj, 0, 0, canvas.width, canvas.height);
+      } else {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width || 800;
+        canvas.height = rect.height || 600;
+      }
 
       // Render grounded bounding boxes
       groundingBoxes.forEach((box) => {
@@ -64,19 +67,25 @@ export default function CanvasView({
         ctx.strokeRect(x, y, w, h);
 
         const labelText = `${box.label} (${Math.round((box.confidence || 0.9) * 100)}%)`;
-        ctx.font = `bold ${Math.max(13, Math.floor(canvas.width / 36))}px Inter, sans-serif`;
+        ctx.font = `bold ${Math.max(12, Math.floor(canvas.width / 40))}px Inter, sans-serif`;
         const textMetrics = ctx.measureText(labelText);
         const padding = 6;
-        const textHeight = Math.max(18, Math.floor(canvas.width / 32));
+        const textHeight = Math.max(16, Math.floor(canvas.width / 36));
 
         ctx.fillStyle = strokeColor;
-        ctx.fillRect(x, y - textHeight - padding, textMetrics.width + padding * 2, textHeight + padding);
+        ctx.fillRect(x, Math.max(0, y - textHeight - padding), textMetrics.width + padding * 2, textHeight + padding);
 
         ctx.fillStyle = "#040711";
-        ctx.fillText(labelText, x + padding, y - padding);
+        ctx.fillText(labelText, x + padding, Math.max(textHeight, y - padding));
       });
     };
-  }, [img1, groundingBoxes]);
+
+    const imageObj = new Image();
+    imageObj.crossOrigin = "anonymous";
+    imageObj.src = img1.preview_base64;
+    imageObj.onload = renderBoxes;
+    renderBoxes();
+  }, [img1, groundingBoxes, selectedImages.length, viewMode]);
 
   // Click on canvas handler to inspect spatial point coordinates
   const handleCanvasClick = (e) => {
@@ -144,15 +153,15 @@ export default function CanvasView({
         <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', userSelect: 'none' }}>
           {/* Background Image (Right / Underneath) */}
           <img src={img2.preview_base64} alt={img2.filename} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-          <div style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(10, 16, 36, 0.85)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.725rem', fontWeight: 600, color: '#34d399', fontFamily: 'var(--font-mono)', border: '1px solid rgba(16,185,129,0.3)' }}>
-            {img2.filename} ({img2.metadata.modality})
+          <div style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(10, 16, 36, 0.85)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.725rem', fontWeight: 600, color: '#34d399', fontFamily: 'var(--font-mono)', border: '1px solid rgba(16,185,129,0.3)', zIndex: 10 }}>
+            {img2.filename} ({img2.metadata?.modality || 'SAR'})
           </div>
 
           {/* Foreground Image (Left / Clipped) */}
           <div style={{ position: 'absolute', top: 0, left: 0, width: `${swipePos}%`, height: '100%', overflow: 'hidden', borderRight: '2px solid #00f0ff' }}>
             <img src={img1.preview_base64} alt={img1.filename} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', maxWidth: 'none' }} />
-            <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'rgba(10, 16, 36, 0.85)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.725rem', fontWeight: 600, color: '#00f0ff', fontFamily: 'var(--font-mono)', border: '1px solid rgba(0,240,255,0.3)' }}>
-              {img1.filename} ({img1.metadata.modality})
+            <div style={{ position: 'absolute', top: '16px', left: '16px', background: 'rgba(10, 16, 36, 0.85)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.725rem', fontWeight: 600, color: '#00f0ff', fontFamily: 'var(--font-mono)', border: '1px solid rgba(0,240,255,0.3)', zIndex: 10 }}>
+              {img1.filename} ({img1.metadata?.modality || 'Optical'})
             </div>
           </div>
 
@@ -164,11 +173,16 @@ export default function CanvasView({
           />
 
           {/* Vertical Divider Indicator */}
-          <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${swipePos}%`, width: '2px', background: '#00f0ff', pointerEvents: 'none', boxShadow: '0 0 10px #00f0ff' }}>
+          <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${swipePos}%`, width: '2px', background: '#00f0ff', pointerEvents: 'none', boxShadow: '0 0 10px #00f0ff', zIndex: 15 }}>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '28px', height: '28px', borderRadius: '50%', background: '#00f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 15px #00f0ff' }}>
               <Sliders size={14} color="#040711" />
             </div>
           </div>
+
+          {/* Grounding Bounding Box Canvas Overlay for Multi-Image Views */}
+          {groundingBoxes.length > 0 && (
+            <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 25 }} />
+          )}
         </div>
       ) : selectedImages.length >= 2 && viewMode === 'OPACITY' ? (
         <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -176,6 +190,11 @@ export default function CanvasView({
           <img src={img1.preview_base64} alt={img1.filename} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
           {/* Stacked Layer (SAR with Opacity) */}
           <img src={img2.preview_base64} alt={img2.filename} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: opacityVal, mixBlendMode: 'screen' }} />
+          
+          {/* Grounding Bounding Box Canvas Overlay */}
+          {groundingBoxes.length > 0 && (
+            <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 25 }} />
+          )}
         </div>
       ) : (
         /* Single Baseline Image Canvas */
@@ -191,29 +210,29 @@ export default function CanvasView({
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#00f0ff', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Info size={14} /> GEOTIFF TELEMETRY HUD
             </span>
-            <span className="telemetry-badge badge-cyan">{img1.metadata.modality}</span>
+            <span className="telemetry-badge badge-cyan">{img1.metadata?.modality || 'Optical'}</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.725rem', fontFamily: 'var(--font-mono)', color: '#cbd5e1' }}>
             <div>
               <span style={{ color: 'var(--text-muted)', display: 'block' }}>CRS:</span>
-              <strong>{img1.metadata.crs}</strong>
+              <strong>{img1.metadata?.crs || 'EPSG:4326'}</strong>
             </div>
             <div>
               <span style={{ color: 'var(--text-muted)', display: 'block' }}>GRID SIZE:</span>
-              <strong>{img1.metadata.dimensions}</strong>
+              <strong>{img1.metadata?.dimensions || '512x512'}</strong>
             </div>
             <div>
               <span style={{ color: 'var(--text-muted)', display: 'block' }}>RESOLUTION:</span>
-              <strong>{img1.metadata.resolution}</strong>
+              <strong>{img1.metadata?.resolution || '10m'}</strong>
             </div>
-            {img1.metadata.ndvi && (
+            {img1.metadata?.ndvi && (
               <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block' }}>MEAN NDVI:</span>
                 <strong style={{ color: '#34d399' }}>{img1.metadata.ndvi.mean.toFixed(3)}</strong>
               </div>
             )}
-            {img1.metadata.sar_polarization && img1.metadata.sar_polarization.length > 0 && (
+            {img1.metadata?.sar_polarization && img1.metadata.sar_polarization.length > 0 && (
               <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block' }}>SAR POL:</span>
                 <strong style={{ color: '#c77dff' }}>{img1.metadata.sar_polarization.join(', ')}</strong>
@@ -234,3 +253,4 @@ export default function CanvasView({
     </div>
   );
 }
+

@@ -106,12 +106,14 @@ class GeospatialImage:
 
         # Normalize to 0-255 uint8 if needed
         if rgb_arr.dtype != np.uint8:
-            min_val = np.min(rgb_arr)
-            max_val = np.max(rgb_arr)
+            clean_arr = np.nan_to_num(rgb_arr, nan=0.0, posinf=255.0, neginf=0.0)
+            min_val = np.nanmin(clean_arr)
+            max_val = np.nanmax(clean_arr)
             if max_val > min_val:
-                rgb_arr = ((rgb_arr - min_val) / (max_val - min_val) * 255).astype(np.uint8)
+                rgb_arr = ((clean_arr - min_val) / (max_val - min_val) * 255).astype(np.uint8)
             else:
                 rgb_arr = np.zeros_like(rgb_arr, dtype=np.uint8)
+
 
         pil_img = Image.fromarray(rgb_arr)
         pil_img.thumbnail((800, 800))

@@ -186,8 +186,9 @@ export default function SampleGalleryModal({ isOpen, onClose, onSelectSampleSet,
                     {item.filename}
                   </div>
                   <div style={{ fontSize: '0.7rem', color: '#00f0ff', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
-                    {item.metadata?.dimensions || '512x512'} • {item.metadata?.file_format || 'GeoTIFF/Raster'}
+                    {item.metadata?.dimensions || '512x512'} • {item.metadata?.format || item.metadata?.file_format || 'Raster'}
                   </div>
+
                 </div>
               </div>
             );

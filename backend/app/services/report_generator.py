@@ -5,9 +5,12 @@ from pathlib import Path
 from typing import Dict, Any
 from app.core.config import REPORTS_DIR
 
+import time
+
 class ReportGenerator:
     @staticmethod
     def generate_html_report(analysis_result: Dict[str, Any]) -> str:
+
         query = analysis_result.get("query", "Remote Sensing Query")
         task_type = analysis_result.get("task_type", "SINGLE_VQA")
         answer = analysis_result.get("answer", "")
@@ -144,8 +147,9 @@ class ReportGenerator:
 </body>
 </html>
         """
-        filename = f"satquery_report_{int(Path().cwd().stat().st_mtime)}.html"
+        filename = f"satquery_report_{int(time.time() * 1000)}.html"
         report_path = REPORTS_DIR / filename
+
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(html_content)
 

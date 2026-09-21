@@ -48,5 +48,7 @@ frontend/.vite/
 Thumbs.db
 Desktop.ini
 
-# Logs
+# Temporary / Generated files
+backend/reports/*.html
 *.log
+
