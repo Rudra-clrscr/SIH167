@@ -69,10 +69,6 @@ export default function App() {
   };
 
   const handleAnalyze = async (queryText) => {
-    if (selectedImages.length === 0) {
-      alert('Please upload satellite imagery or load sample datasets first.');
-      return;
-    }
     setAnalyzing(true);
     try {
       const ids = selectedImages.map(img => img.image_id);
@@ -84,6 +80,7 @@ export default function App() {
       setAnalyzing(false);
     }
   };
+
 
   // Drag and drop event handlers
   const handleDragOver = (e) => {

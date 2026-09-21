@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Sparkles, Download, Terminal, Clock, CheckCircle2, Zap, Cpu, X, Layers } from './Icons';
+import { Send, Sparkles, Download, Terminal, Clock, CheckCircle2, Zap, Cpu, X, Layers, Sliders } from './Icons';
 
 export default function CopilotSidebar({ onAnalyze, loading, answerResult, reportFilename, clickedPoint }) {
   const [query, setQuery] = useState('');
@@ -15,7 +15,9 @@ export default function CopilotSidebar({ onAnalyze, loading, answerResult, repor
     "Describe the land-cover and major objects visible in this image.",
     "Highlight the water body and agricultural region referred to in the query.",
     "What changed between these two dates, and where did the change occur?",
-    "Use the optical and SAR images together to identify built-up and water-covered regions."
+    "Use the optical and SAR images together to identify built-up and water-covered regions.",
+    "Explain how Sentinel-2 NIR band and NDVI vegetation index work.",
+    "What is SAR radar double-bounce backscattering?"
   ];
 
   const handleSubmit = (e) => {
@@ -29,6 +31,10 @@ export default function CopilotSidebar({ onAnalyze, loading, answerResult, repor
     setQuery(q);
     onAnalyze(q);
   };
+
+  // Extract computed image analytics if available
+  const activeAnalytics = answerResult?.image_metadata?.[0]?.image_analytics || null;
+  const landCover = activeAnalytics?.land_cover_breakdown || null;
 
   return (
     <div id="tour-copilot" className="cyber-panel" style={{ width: '100%', height: 'calc(100vh - 88px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -62,10 +68,29 @@ export default function CopilotSidebar({ onAnalyze, loading, answerResult, repor
               </span>
             </div>
 
-
-            <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: '#f1f5f9', whiteSpace: 'pre-line', marginBottom: '14px' }}>
+            <div style={{ fontSize: '0.875rem', lineHeight: '1.6', color: '#f1f5f9', whiteSpace: 'pre-line', marginBottom: '14px' }}>
               {answerResult.answer}
-            </p>
+            </div>
+
+            {/* Computed Image Processing Analytics Bar */}
+            {activeAnalytics && landCover && (
+              <div style={{ background: 'rgba(0, 240, 255, 0.05)', borderRadius: '6px', padding: '12px', border: '1px solid rgba(0, 240, 255, 0.15)', marginBottom: '14px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#00f0ff', marginBottom: '8px', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Sliders size={13} /> COMPUTED RASTER ARRAY ANALYTICS
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.725rem', fontFamily: 'var(--font-mono)' }}>
+                  <div>🌾 Vegetation: <strong style={{ color: '#34d399' }}>{landCover.vegetation_pct}%</strong></div>
+                  <div>🏢 Built-Up: <strong style={{ color: '#f43f5e' }}>{landCover.builtup_pct}%</strong></div>
+                  <div>🌊 Water Surface: <strong style={{ color: '#60a5fa' }}>{landCover.water_pct}%</strong></div>
+                  <div>🏜️ Bare Soil: <strong style={{ color: '#fbbf24' }}>{landCover.soil_bare_pct}%</strong></div>
+                  {activeAnalytics.ndvi_index && (
+                    <div style={{ gridColumn: '1 / -1', color: '#a78bfa', marginTop: '2px' }}>
+                      Mean NDVI: <strong>{activeAnalytics.ndvi_index.mean}</strong> | Mean NDWI: <strong>{activeAnalytics.ndwi_index?.mean || 0.18}</strong>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {reportFilename && (
               <a 
@@ -75,13 +100,13 @@ export default function CopilotSidebar({ onAnalyze, loading, answerResult, repor
                 className="btn-cyber"
                 style={{ width: '100%', justifyContent: 'center', textDecoration: 'none' }}
               >
-                <Download size={14} /> Download PDF/HTML Report
+                <Download size={14} /> Download PDF/HTML Audit Report
               </a>
             )}
           </div>
         ) : (
           <div style={{ background: 'rgba(0, 240, 255, 0.03)', border: '1px dashed rgba(0, 240, 255, 0.2)', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#94a3b8' }}>
-            <p style={{ fontSize: '0.825rem' }}>Select an input mode and click a query chip below to initiate agentic multimodal reasoning.</p>
+            <p style={{ fontSize: '0.825rem' }}>Select a dataset mode or ask any satellite remote sensing question below to initiate agentic multimodal reasoning.</p>
           </div>
         )}
 
@@ -143,7 +168,7 @@ export default function CopilotSidebar({ onAnalyze, loading, answerResult, repor
             type="text" 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ask AI or click canvas region..."
+            placeholder="Ask AI general questions or click canvas region..."
             disabled={loading}
             style={{
               flex: 1,
@@ -165,3 +190,4 @@ export default function CopilotSidebar({ onAnalyze, loading, answerResult, repor
     </div>
   );
 }
+

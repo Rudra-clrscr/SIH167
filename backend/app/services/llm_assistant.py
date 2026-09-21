@@ -16,6 +16,19 @@ class SatQueryLLMAssistant:
         return bool(GROQ_API_KEY)
 
     @staticmethod
+    def answer_general_query(query: str) -> str:
+        """Answers general Earth Observation, satellite, GIS, and Remote Sensing questions."""
+        user_prompt = (
+            f"User Question: '{query}'\n\n"
+            f"Instruction: Provide an authoritative, detailed, and professional response as the SatQuery AI Assistant. "
+            f"Break down remote sensing concepts, sensor physics, orbital characteristics, spectral indices, or workflows with bold headings, bullet points, and practical satellite examples."
+        )
+        resp = call_groq_llm(SYSTEM_PROMPT_COPILOT, user_prompt, temperature=0.25, max_tokens=750)
+        if resp:
+            return resp
+        return f"SatQuery AI Copilot: Direct answer for query '{query}'. (Please connect Groq API key or select satellite images for localized spatial analytics)."
+
+    @staticmethod
     def synthesize_analysis(
         query: str,
         task_type: str,
@@ -28,14 +41,18 @@ class SatQueryLLMAssistant:
         if not SatQueryLLMAssistant.is_available():
             return raw_answer
 
-        # Construct image metadata context
+        # Construct image metadata & numpy image processing analytics context
         image_contexts = []
         for i, img in enumerate(images, start=1):
             meta = img.to_metadata_dict()
+            analytics = meta.get("image_analytics", {})
             image_contexts.append(
                 f"Image #{i} ({img.name}): Modality={meta.get('modality')}, "
                 f"Dimensions={meta.get('dimensions')}, Channels={meta.get('channels')}, "
-                f"CRS={meta.get('crs')}, Resolution={meta.get('resolution')}"
+                f"CRS={meta.get('crs')}, Resolution={meta.get('resolution')}\n"
+                f"Computed Array Analytics: Land-Cover Breakdown={analytics.get('land_cover_breakdown')}, "
+                f"NDVI Index={analytics.get('ndvi_index')}, NDWI Index={analytics.get('ndwi_index')}, "
+                f"SAR Analytics={analytics.get('sar_radar_analytics')}"
             )
         
         boxes_summary = ""
@@ -48,15 +65,16 @@ class SatQueryLLMAssistant:
             f"User Query: '{query}'\n"
             f"Assigned Task Type: {task_type}\n"
             f"Specialist Backbone/Tool: {tool_name}\n"
-            f"Satellite Metadata:\n" + "\n".join(image_contexts) + "\n"
+            f"Satellite Metadata & Computed Image Processing Analytics:\n" + "\n".join(image_contexts) + "\n"
             f"{boxes_summary}\n"
             f"Preliminary Analytical Findings:\n{raw_answer}\n\n"
             f"Instruction: Generate an executive satellite intelligence response that addresses the user's query directly, "
-            f"incorporating the spectral, sensor, and spatial evidence. Keep it professional, crisp, and well-structured."
+            f"incorporating the computed spectral indices, sensor physics, land cover percentages, and spatial evidence. Keep it professional, crisp, and well-structured."
         )
 
-        llm_response = call_groq_llm(SYSTEM_PROMPT_COPILOT, user_prompt, temperature=0.2, max_tokens=700)
+        llm_response = call_groq_llm(SYSTEM_PROMPT_COPILOT, user_prompt, temperature=0.2, max_tokens=750)
         
         if llm_response:
             return llm_response
         return raw_answer
+
