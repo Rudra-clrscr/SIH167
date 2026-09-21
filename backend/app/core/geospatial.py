@@ -8,6 +8,14 @@ try:
 except ImportError:
     tifffile = None
 
+try:
+    import rasterio
+    from rasterio.transform import xy as rasterio_xy
+except ImportError:
+    rasterio = None
+    rasterio_xy = None
+
+
 class GeospatialImage:
     def __init__(self, file_path: str, name: str = None):
         self.file_path = file_path
@@ -206,6 +214,43 @@ class GeospatialImage:
             "sar_radar_analytics": sar_stats
         }
 
+    def pixel_to_geo_coordinates(self, bbox: list) -> dict:
+        """Extracts real-world geographic coordinates (Lat/Lon or UTM) for a bounding box using Rasterio geotransform."""
+        ymin, xmin, ymax, xmax = bbox
+        px_min_x = int(xmin * self.width)
+        px_min_y = int(ymin * self.height)
+        px_max_x = int(xmax * self.width)
+        px_max_y = int(ymax * self.height)
+
+        if rasterio is not None and self.ext in [".tif", ".tiff"]:
+            try:
+                with rasterio.open(self.file_path) as dataset:
+                    lon_min, lat_max = dataset.xy(px_min_y, px_min_x)
+                    lon_max, lat_min = dataset.xy(px_max_y, px_max_x)
+                    return {
+                        "engine": "Rasterio Affine Transformation Matrix",
+                        "crs": str(dataset.crs) or self.crs,
+                        "geo_bbox": [round(lon_min, 6), round(lat_min, 6), round(lon_max, 6), round(lat_max, 6)],
+                        "min_corner": {"lon": round(lon_min, 6), "lat": round(lat_max, 6)},
+                        "max_corner": {"lon": round(lon_max, 6), "lat": round(lat_min, 6)}
+                    }
+            except Exception as e:
+                pass
+
+        # Fallback linear interpolation over bounding box bounds
+        b = self.bounds
+        lon_min = b[0] + xmin * (b[2] - b[0])
+        lon_max = b[0] + xmax * (b[2] - b[0])
+        lat_max = b[3] - ymin * (b[3] - b[1])
+        lat_min = b[3] - ymax * (b[3] - b[1])
+        return {
+            "engine": "Geospatial Bounding Box Interpolation",
+            "crs": self.crs,
+            "geo_bbox": [round(lon_min, 6), round(lat_min, 6), round(lon_max, 6), round(lat_max, 6)],
+            "min_corner": {"lon": round(lon_min, 6), "lat": round(lat_max, 6)},
+            "max_corner": {"lon": round(lon_max, 6), "lat": round(lat_min, 6)}
+        }
+
     def to_metadata_dict(self):
         return {
             "filename": self.name,
@@ -222,6 +267,7 @@ class GeospatialImage:
             "date_taken": self.date_taken,
             "image_analytics": self.perform_image_analytics()
         }
+
 
 
 def check_spatial_co_registration(img1: GeospatialImage, img2: GeospatialImage) -> dict:

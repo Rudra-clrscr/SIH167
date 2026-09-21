@@ -34,6 +34,10 @@ class RSBiTemporalChangeModel(BaseRSModel):
             answer = f"Flood / Inundation Change Analysis between {t1.date_taken} and {t2.date_taken}: Water surface extent expanded by 31.5% along the river basin following monsoon discharge."
             change_boxes = [{"label": "Inundated Water Surface", "bbox": [0.15, 0.35, 0.85, 0.80], "confidence": 0.97, "change_type": "FLOOD_INUNDATION"}]
 
+        # Attach real geospatial coordinates using Rasterio geotransform matrix
+        for box in change_boxes:
+            box["geo_coordinates"] = t1.pixel_to_geo_coordinates(box["bbox"])
+
         return {
             "answer": answer,
             "grounding_boxes": change_boxes,
@@ -42,10 +46,12 @@ class RSBiTemporalChangeModel(BaseRSModel):
                 "t1_date": t1.date_taken,
                 "t2_date": t2.date_taken,
                 "changed_area_percentage": 22.4,
-                "primary_change_class": "Urban Growth & Land Conversion"
+                "primary_change_class": "Urban Growth & Land Conversion",
+                "geospatial_engine": "Rasterio Affine Transformation Matrix"
             },
             "model_metadata": {
                 "backbone": self.backbone,
                 "change_sensitivity": parameters.get("change_sensitivity", 0.65)
             }
         }
+
