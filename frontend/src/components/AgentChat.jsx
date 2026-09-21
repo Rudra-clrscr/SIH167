@@ -85,12 +85,18 @@ export default function AgentChat({ onAnalyze, loading, answerResult, reportFile
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="badge badge-blue">{answerResult.task_type}</span>
               <span className="badge badge-purple">{answerResult.selected_tool?.name || 'Specialist Model'}</span>
+              {answerResult.llm_engine && (
+                <span className="badge badge-purple" style={{ background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.4)', color: '#c084fc' }}>
+                  ⚡ {answerResult.llm_engine}
+                </span>
+              )}
             </div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span className="badge badge-emerald">
                 Confidence: {Math.round((answerResult.confidence || 0.9) * 100)}%
               </span>
+
               {reportFilename && (
                 <a 
                   href={`/api/download-report/${reportFilename}`} 

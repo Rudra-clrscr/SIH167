@@ -37,7 +37,12 @@ export default function CopilotSidebar({ onAnalyze, loading, answerResult, repor
         <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-sans)' }}>
           <Sparkles size={18} color="#00f0ff" /> AGENTIC COPILOT
         </h3>
-        <span className="telemetry-badge badge-cyan">REGISTRY ACTIVE</span>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <span className="telemetry-badge badge-purple" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Zap size={11} color="#a855f7" /> GROQ LLM
+          </span>
+          <span className="telemetry-badge badge-cyan">ACTIVE</span>
+        </div>
       </div>
 
       {/* Main Scrollable Body */}
@@ -46,11 +51,17 @@ export default function CopilotSidebar({ onAnalyze, loading, answerResult, repor
         {answerResult ? (
           <div style={{ background: 'rgba(10, 16, 36, 0.9)', borderRadius: '8px', padding: '16px', border: '1px solid rgba(0, 240, 255, 0.3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
-              <span className="telemetry-badge badge-cyan">{answerResult.task_type}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="telemetry-badge badge-cyan">{answerResult.task_type}</span>
+                {answerResult.llm_engine && (
+                  <span className="telemetry-badge badge-purple">{answerResult.llm_engine}</span>
+                )}
+              </div>
               <span className="telemetry-badge badge-emerald">
                 Confidence: {Math.round((answerResult.confidence || 0.9) * 100)}%
               </span>
             </div>
+
 
             <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: '#f1f5f9', whiteSpace: 'pre-line', marginBottom: '14px' }}>
               {answerResult.answer}

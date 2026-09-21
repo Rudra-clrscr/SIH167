@@ -8,6 +8,8 @@ from app.models.vqa_caption import RSVQACaptionModel
 from app.models.grounding import RSGroundingModel
 from app.models.change_detection import RSBiTemporalChangeModel
 from app.models.optical_sar_fusion import RSOpticalSARFusionModel
+from app.services.llm_assistant import SatQueryLLMAssistant
+from app.core.config import GROQ_MODEL
 
 class AgenticOrchestrator:
     def __init__(self):
@@ -76,7 +78,7 @@ class AgenticOrchestrator:
             "latency_ms": step3_latency
         })
 
-        # Step 4: Model Execution
+        # Step 4: Specialist Model Execution
         step4_start = time.time()
         model_instance = self.models.get(classification["primary_tool_id"], self.models["rs_vqa_tool"])
         model_output = model_instance.run(images, query, permitted_params)
@@ -90,10 +92,29 @@ class AgenticOrchestrator:
             "latency_ms": step4_latency
         })
 
-        # Step 5: Output Integration & Evidence Assembly
-        total_latency = round((time.time() - start_time) * 1000, 2)
+        # Step 5: Groq LLM Copilot Synthesis
+        llm_start = time.time()
+        final_answer = SatQueryLLMAssistant.synthesize_analysis(
+            query=query,
+            task_type=classification["task_type"],
+            tool_name=tool_meta["name"] if tool_meta else model_instance.name,
+            images=images,
+            raw_answer=model_output.get("answer", ""),
+            grounding_boxes=model_output.get("grounding_boxes", [])
+        )
+        llm_latency = round((time.time() - llm_start) * 1000, 2)
+
         trace_log.append({
             "step": 5,
+            "action": f"GROQ_LLM_SYNTHESIS ({GROQ_MODEL})",
+            "details": "Framed response using Groq Cloud AI Assistant" if SatQueryLLMAssistant.is_available() else "Using local synthesis fallback",
+            "latency_ms": llm_latency
+        })
+
+        # Step 6: Output Integration & Evidence Assembly
+        total_latency = round((time.time() - start_time) * 1000, 2)
+        trace_log.append({
+            "step": 6,
             "action": "OUTPUT_INTEGRATION",
             "total_execution_time_ms": total_latency,
             "status": "SUCCESS"
@@ -104,11 +125,13 @@ class AgenticOrchestrator:
             "query": query,
             "task_type": classification["task_type"],
             "selected_tool": tool_meta,
-            "answer": model_output.get("answer", ""),
+            "answer": final_answer,
             "grounding_boxes": model_output.get("grounding_boxes", []),
             "confidence": model_output.get("confidence", 0.90),
             "image_previews": [img.get_rgb_preview_base64() for img in images],
             "image_metadata": [img.to_metadata_dict() for img in images],
             "trace_log": trace_log,
-            "total_latency_ms": total_latency
+            "total_latency_ms": total_latency,
+            "llm_engine": f"Groq {GROQ_MODEL}"
         }
+

@@ -95,3 +95,16 @@ async def download_report(filename: str):
 async def run_benchmark(req: BenchmarkRequest):
     res = BenchmarkRunner.run_benchmark_suite(req.dataset_name)
     return res
+
+@router.get("/agent-status")
+async def get_agent_status():
+    from app.core.config import GROQ_MODEL, GROQ_API_KEY
+    from app.services.llm_assistant import SatQueryLLMAssistant
+    return {
+        "status": "ACTIVE",
+        "provider": "Groq Cloud API",
+        "model": GROQ_MODEL,
+        "llm_enabled": SatQueryLLMAssistant.is_available(),
+        "key_configured": bool(GROQ_API_KEY)
+    }
+
