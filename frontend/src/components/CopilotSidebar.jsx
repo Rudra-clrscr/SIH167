@@ -45,9 +45,9 @@ export default function CopilotSidebar({ onAnalyze, loading, answerResult, repor
         </h3>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <span className="telemetry-badge badge-purple" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Zap size={11} color="#a855f7" /> GROQ LLM
+            <Cpu size={11} color="#a855f7" /> HF TRANSFORMERS VLM
           </span>
-          <span className="telemetry-badge badge-cyan">ACTIVE</span>
+          <span className="telemetry-badge badge-cyan">OPEN SOURCE</span>
         </div>
       </div>
 

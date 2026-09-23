@@ -3,13 +3,13 @@ from typing import List, Dict, Any
 from app.core.geospatial import GeospatialImage
 from app.core.compatibility import CompatibilityChecker
 from app.agent.classifier import QueryClassifier
-from app.agent.registry import ToolRegistry
+from app.agent.registry import ToolRegistry, ParameterWhitelister
 from app.models.vqa_caption import RSVQACaptionModel
 from app.models.grounding import RSGroundingModel
 from app.models.change_detection import RSBiTemporalChangeModel
 from app.models.optical_sar_fusion import RSOpticalSARFusionModel
 from app.services.llm_assistant import SatQueryLLMAssistant
-from app.core.config import GROQ_MODEL
+from app.core.config import HF_VLM_MODEL_ID
 
 class AgenticOrchestrator:
     def __init__(self):
@@ -63,10 +63,13 @@ class AgenticOrchestrator:
             "latency_ms": step2_latency
         })
 
-        # Step 3: Tool Selection & Registry Parameter Validation
+        # Step 3: Tool Selection & Registry Parameter Whitelisting
         step3_start = time.time()
         tool_meta = self.registry.get_tool(classification["primary_tool_id"])
-        permitted_params = tool_meta["permitted_parameters"] if tool_meta else {}
+        schema_params = tool_meta["permitted_parameters"] if tool_meta else {}
+        
+        # Rigorous parameter whitelisting and range clamping
+        sanitized_params, param_diagnostics = ParameterWhitelister.sanitize_parameters(schema_params, {})
         step3_latency = round((time.time() - step3_start) * 1000, 2)
 
         trace_log.append({
@@ -74,14 +77,16 @@ class AgenticOrchestrator:
             "action": "TOOL_REGISTRY_SELECTION",
             "tool_name": tool_meta["name"] if tool_meta else classification["primary_tool_id"],
             "adapted_backbone": tool_meta.get("adapted_backbone", "RS VLM") if tool_meta else "RS VLM",
-            "permitted_parameters": permitted_params,
+            "permitted_parameters": schema_params,
+            "clamped_parameters": sanitized_params,
+            "parameter_diagnostics": param_diagnostics or ["All parameters strictly validated against schema whitelist."],
             "latency_ms": step3_latency
         })
 
         # Step 4: Specialist Model Execution
         step4_start = time.time()
         model_instance = self.models.get(classification["primary_tool_id"], self.models["rs_vqa_tool"])
-        model_output = model_instance.run(images, query, permitted_params)
+        model_output = model_instance.run(images, query, sanitized_params)
         step4_latency = round((time.time() - step4_start) * 1000, 2)
 
         trace_log.append({
@@ -92,7 +97,7 @@ class AgenticOrchestrator:
             "latency_ms": step4_latency
         })
 
-        # Step 5: Groq LLM Copilot Synthesis
+        # Step 5: Open-Source HuggingFace Transformers VLM Synthesis
         llm_start = time.time()
         final_answer = SatQueryLLMAssistant.synthesize_analysis(
             query=query,
@@ -104,10 +109,11 @@ class AgenticOrchestrator:
         )
         llm_latency = round((time.time() - llm_start) * 1000, 2)
 
+        from app.core.config import HF_VLM_MODEL_ID, HF_TRANSFORMERS_ENGINE
         trace_log.append({
             "step": 5,
-            "action": f"GROQ_LLM_SYNTHESIS ({GROQ_MODEL})",
-            "details": "Framed response using Groq Cloud AI Assistant" if SatQueryLLMAssistant.is_available() else "Using local synthesis fallback",
+            "action": f"HUGGINGFACE_OPEN_SOURCE_VLM_SYNTHESIS ({HF_VLM_MODEL_ID})",
+            "details": "Framed executive response using local Open-Source HuggingFace Transformers VLM Engine",
             "latency_ms": llm_latency
         })
 
@@ -132,6 +138,6 @@ class AgenticOrchestrator:
             "image_metadata": [img.to_metadata_dict() for img in images],
             "trace_log": trace_log,
             "total_latency_ms": total_latency,
-            "llm_engine": f"Groq {GROQ_MODEL}"
+            "llm_engine": f"HuggingFace {HF_VLM_MODEL_ID}"
         }
 

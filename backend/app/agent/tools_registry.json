@@ -6,9 +6,9 @@
       "description": "Answers natural language questions about land cover, spectral characteristics, and features in satellite imagery.",
       "accepted_inputs": ["SINGLE"],
       "permitted_parameters": {
-        "confidence_threshold": 0.5,
-        "detail_level": "verbose",
-        "spatial_attention": true
+        "confidence_threshold": { "type": "float", "default": 0.5, "min": 0.0, "max": 1.0 },
+        "detail_level": { "type": "enum", "default": "verbose", "allowed": ["concise", "verbose", "technical"] },
+        "spatial_attention": { "type": "bool", "default": true }
       },
       "adapted_backbone": "BigEarthNet-adapted RS-VLM"
     },
@@ -18,8 +18,8 @@
       "description": "Generates structured scene descriptions, land cover summaries, and object counts.",
       "accepted_inputs": ["SINGLE"],
       "permitted_parameters": {
-        "max_length": 150,
-        "include_landcover_distribution": true
+        "max_length": { "type": "int", "default": 150, "min": 10, "max": 500 },
+        "include_landcover_distribution": { "type": "bool", "default": true }
       },
       "adapted_backbone": "BigEarthNet-adapted RS-Captioner"
     },
@@ -29,9 +29,9 @@
       "description": "Localizes target objects, water bodies, urban zones, or agricultural plots specified in text queries.",
       "accepted_inputs": ["SINGLE", "CROSS_MODAL"],
       "permitted_parameters": {
-        "iou_threshold": 0.4,
-        "max_boxes": 10,
-        "mask_generation": true
+        "iou_threshold": { "type": "float", "default": 0.4, "min": 0.0, "max": 1.0 },
+        "max_boxes": { "type": "int", "default": 10, "min": 1, "max": 50 },
+        "mask_generation": { "type": "bool", "default": true }
       },
       "adapted_backbone": "RS-Grounding CLIP/YOLO"
     },
@@ -41,9 +41,9 @@
       "description": "Detects land cover transitions, infrastructure changes, and flood inundation between two dates, generating a spatial change map and textual change explanation.",
       "accepted_inputs": ["BITEMPORAL"],
       "permitted_parameters": {
-        "change_sensitivity": 0.65,
-        "filter_small_noise": true,
-        "generate_heatmap": true
+        "change_sensitivity": { "type": "float", "default": 0.65, "min": 0.0, "max": 1.0 },
+        "filter_small_noise": { "type": "bool", "default": true },
+        "generate_heatmap": { "type": "bool", "default": true }
       },
       "adapted_backbone": "BiTemporal RS-ChangeFormer"
     },
@@ -53,9 +53,9 @@
       "description": "Fuses co-registered Optical spectral features with SAR structural/backscatter radar signals for day/night and cloud-resilient joint land-use classification.",
       "accepted_inputs": ["CROSS_MODAL"],
       "permitted_parameters": {
-        "sar_weight": 0.5,
-        "optical_weight": 0.5,
-        "polarization_focus": "VV_VH"
+        "sar_weight": { "type": "float", "default": 0.5, "min": 0.0, "max": 1.0 },
+        "optical_weight": { "type": "float", "default": 0.5, "min": 0.0, "max": 1.0 },
+        "polarization_focus": { "type": "enum", "default": "VV_VH", "allowed": ["VV", "VH", "VV_VH"] }
       },
       "adapted_backbone": "BigEarthNet S1/S2 Cross-Modal Fusion Transformer"
     }
